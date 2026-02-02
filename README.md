@@ -48,17 +48,17 @@ Bands Used:
 
 For each possible shift:
 
-Overlapping pixels are compared
+- Overlapping pixels are compared
 
-Pearson correlation is computed
+- Pearson correlation is computed
 
-The shift with the maximum correlation is selected.
+- The shift with the maximum correlation is selected.
 
-Aligned bands are saved as a new raster stack.
+- Aligned bands are saved as a new raster stack.
 
-Visual assessment is performed using false-color composites.
+- Visual assessment is performed using false-color composites.
 
-Why Green as Reference?
+## Why Green as Reference?
 
 The Green band is used as the reference because:
 
@@ -70,7 +70,7 @@ The Green band is used as the reference because:
 
  - It correlates well with both visible and NIR bands
 
-Repository Structure
+## Repository Structure
 - coregistration_automation_drone_imagery/
 - │
 - ├── coregistration_automation_feasibility.Rmd       # Reproducible R Markdown report
@@ -81,11 +81,11 @@ Repository Structure
 - ├── IMG_0455_4.tif                # NIR band
 - └── README.md
 
-Software Requirements
+## Software Requirements
 
-R 
+- R 
 
-R packages: terra
+- R packages: terra
 
 
 # Applicability to Other Drone Data
@@ -115,7 +115,8 @@ Radiometric differences
 
 - Computational cost increases with larger search windows
 
-Author
+
+# Author
 Iris Nana Obeng
 (MSc. Global Change Ecology)
 
