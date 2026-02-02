@@ -71,15 +71,15 @@ The Green band is used as the reference because:
  - It correlates well with both visible and NIR bands
 
 Repository Structure
-coregistration_automation_drone_imagery/
-│
-├── coregistration_automation_feasibility.Rmd       # Reproducible R Markdown report
-├── MicaSense_4Band_Aligned.tif   # Output aligned raster stack
-├── IMG_0455_1.tif                # Blue band
-├── IMG_0455_2.tif                # Green band
-├── IMG_0455_3.tif                # Red band
-├── IMG_0455_4.tif                # NIR band
-└── README.md
+- coregistration_automation_drone_imagery/
+- │
+- ├── coregistration_automation_feasibility.Rmd       # Reproducible R Markdown report
+- ├── MicaSense_4Band_Aligned.tif   # Output aligned raster stack
+- ├── IMG_0455_1.tif                # Blue band
+- ├── IMG_0455_2.tif                # Green band
+- ├── IMG_0455_3.tif                # Red band
+- ├── IMG_0455_4.tif                # NIR band
+- └── README.md
 
 Software Requirements
 
@@ -109,14 +109,13 @@ Radiometric differences
 
 # Limitations
 
-Assumes translational (shift-only) misalignment
+- Assumes translational (shift-only) misalignment
 
-Does not correct rotation or scale differences
+- Does not correct rotation or scale differences
 
-Computational cost increases with larger search windows
+- Computational cost increases with larger search windows
 
 Author
-
 Iris Nana Obeng
 (MSc. Global Change Ecology)
 
