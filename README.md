@@ -1,4 +1,4 @@
-# Coregistration Automation for Drone Multispectral Imagery in R
+# Coregistration Automation for Drone Multispectral Imagery 
 
 # Overview
 
