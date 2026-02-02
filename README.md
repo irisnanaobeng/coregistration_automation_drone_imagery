@@ -120,5 +120,5 @@ Computational cost increases with larger search windows
 Author
 
 Iris Nana Obeng
-MSc. Global Change Ecology
-Automatic Multispectral Image Coregistration
+(MSc. Global Change Ecology)
+
