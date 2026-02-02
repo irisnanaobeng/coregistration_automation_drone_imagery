@@ -1,0 +1,1 @@
+# coregistration_automation_drone_imagery
