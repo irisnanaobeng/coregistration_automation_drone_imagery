@@ -8,21 +8,19 @@ The method uses a correlation-based pixel-shift approach to align multispectral 
 
 The workflow includes:
 
-Automatic band alignment
+ - Automatic band alignment
 
-Saving aligned multispectral raster stacks
+ - Saving aligned multispectral raster stacks
 
-Visual assessment using false-color composites
+ - Visual assessment using false-color composites
 
 # Motivation
 
 Multispectral drone cameras capture different spectral bands using separate lenses, which introduces spatial misalignment between bands. Traditional correction methods rely on manual GCP selection, which is:
 
-Time-consuming
-
-Subjective
-
-Not scalable for large datasets
+- Time-consuming
+- Subjective
+- Not scalable for large datasets
 
 This project explores whether automatic band-to-band alignment can be achieved using simple correlation-based methods in R.
 
@@ -31,12 +29,12 @@ Sensor
 
 MicaSense RedEdge
 
-Bands Used
-File Name	Band	Wavelength
-IMG_0455_1.tif	Blue	475 nm
-IMG_0455_2.tif	Green	560 nm
-IMG_0455_3.tif	Red	668 nm
-IMG_0455_4.tif	NIR	840 nm
+Bands Used: 
+ - File Name	Band	Wavelength
+ - IMG_0455_1.tif	Blue	475 nm
+ - IMG_0455_2.tif	Green	560 nm
+ - IMG_0455_3.tif	Red	668 nm
+ - IMG_0455_4.tif	NIR	840 nm
 
 # Methodology Summary
 
