@@ -1,0 +1,249 @@
+---
+title: "Drone Multispectral Coregistration (DJI Dataset)"
+author: "Iris Nana Obeng"
+date: "2026-02-25"
+output: github_document
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+library(terra)
+library(imager)
+library(RNiftyReg)
+library(RNifti)
+
+setwd("~/Desktop/drone ms coregistration")
+```
+
+## Load multispectral bands
+
+```{r load-images}
+files <- c(
+  "DJI_20251115110614_0003_MS_G (1).tiff",
+  "DJI_20251115110614_0003_MS_R.tiff",
+  "DJI_20251115110614_0003_MS_NIR.tiff"
+)
+
+ms <- rast(files)
+names(ms) <- c("Green","Red","NIR")
+
+ref_red <- ms$Red
+green   <- ms$Green
+nir     <- ms$NIR
+```
+
+## Alignment Functions
+
+```{r alignment}
+align_band_simple <- function(ref_mat, target_mat, max_shift = 20){
+
+  best_cor <- -Inf; best_dx <- 0; best_dy <- 0
+  rows <- nrow(ref_mat); cols <- ncol(ref_mat)
+
+  for (dx in -max_shift:max_shift){
+    for (dy in -max_shift:max_shift){
+
+      shifted <- matrix(NA,rows,cols)
+
+      r_dst <- (1:rows)+dy
+      c_dst <- (1:cols)+dx
+
+      ok_r <- r_dst>=1 & r_dst<=rows
+      ok_c <- c_dst>=1 & c_dst<=cols
+
+      shifted[r_dst[ok_r],c_dst[ok_c]] <-
+        target_mat[(1:rows)[ok_r],(1:cols)[ok_c]]
+
+      valid <- is.finite(ref_mat) & is.finite(shifted)
+
+      if(sum(valid)>1000){
+        cc <- cor(ref_mat[valid],shifted[valid])
+        if(!is.na(cc) && cc>best_cor){
+          best_cor<-cc; best_dx<-dx; best_dy<-dy
+        }
+      }
+    }
+  }
+  list(dx=best_dx,dy=best_dy)
+}
+```
+
+## Edge Detection
+
+```{r edge-detection}
+get_edges <- function(img){
+
+  im <- as.cimg(t(img))
+  im <- (im-min(im))/(max(im)-min(im))
+
+  sobel_x <- as.cimg(matrix(c(-1,0,1,-2,0,2,-1,0,1),3,3))
+  sobel_y <- as.cimg(matrix(c(-1,-2,-1,0,0,0,1,2,1),3,3))
+
+  sobx <- imager::convolve(im,sobel_x)
+  soby <- imager::convolve(im,sobel_y)
+
+  edges <- sqrt(sobx^2+soby^2)
+  edges <- edges/max(edges)
+
+  t(as.matrix(edges))
+}
+```
+
+## Edge-Enhanced Affine Alignment
+
+```{r edge-alignment}
+align_nir_affine <- function(ref_rast,target_rast){
+
+  fact <- max(
+    ceiling(ncol(ref_rast)/2000),
+    ceiling(nrow(ref_rast)/2000)
+  )
+
+  ref_small <- aggregate(ref_rast,fact=fact)
+  tgt_small <- aggregate(target_rast,fact=fact)
+
+  ref <- as.matrix(ref_small,wide=TRUE)
+  tgt <- as.matrix(tgt_small,wide=TRUE)
+
+  ref[!is.finite(ref)] <- 0
+  tgt[!is.finite(tgt)] <- 0
+
+  ref_e <- get_edges(ref)
+  tgt_e <- get_edges(tgt)
+
+  ref_nif <- asNifti(ref_e)
+  tgt_nif <- asNifti(tgt_e)
+
+  reg <- niftyreg(
+    source=tgt_nif,
+    target=ref_nif,
+    scope="affine"
+  )
+
+  # APPLY TRANSFORM TO SAME SCALE IMAGE
+  tgt_small_nif <- asNifti(as.matrix(tgt_small,wide=TRUE))
+
+  aligned_small <- applyTransform(reg,tgt_small_nif)
+
+aligned_small <- rast(as.matrix(aligned_small), 
+                      extent=ext(ref_small),
+                      crs=crs(ref_small))
+
+  # UPSAMPLE BACK TO RED GRID
+  aligned_full <- resample(
+    aligned_small,
+    ref_rast,
+    method="bilinear"
+  )
+
+  aligned_full
+}
+```
+
+## Prepare matrices
+
+```{r prepare-matrices}
+ref_red <- ms$Red
+green   <- ms$Green
+nir     <- ms$NIR
+
+ref_red_mat <- as.matrix(ref_red, wide=TRUE)
+green_mat   <- as.matrix(green, wide=TRUE)
+nir_mat     <- as.matrix(nir, wide=TRUE)
+
+aligned_rasters <- list(Red = ref_red)
+```
+
+## Coregister Bands
+
+```{r coregistration}
+ref_red_mat <- as.matrix(ref_red,wide=TRUE)
+green_mat   <- as.matrix(green,wide=TRUE)
+
+res_green <- align_band_simple(ref_red_mat,green_mat)
+
+green_shift <- imshift(
+  as.cimg(t(green_mat)),
+  res_green$dx,
+  res_green$dy
+)
+
+green_shift <- t(as.matrix(green_shift))
+green_r <- rast(green_shift)
+
+ext(green_r) <- ext(ref_red)
+crs(green_r) <- crs(ref_red)
+
+aligned_rasters$Green <- green_r
+
+cat(sprintf("✓ Green aligned (dx=%d, dy=%d)\n",
+            res_green$dx, res_green$dy))
+
+
+
+# --- NIR ALIGNMENT ---
+nir_r <- align_nir_affine(ref_red,nir)
+
+cat("✓ NIR aligned using EDGE-AFFINE transform\n")
+```
+
+## RGB STACKS FOR PLOTTING
+
+```{r rgb-stacks}
+rg_before <- c(ref_red,green,green)
+rg_after  <- c(ref_red,green_r,green_r)
+
+rn_before <- c(ref_red,nir,nir)
+rn_after  <- c(ref_red,nir_r,nir_r)
+
+rgb_before <- c(green,ref_red,nir)
+rgb_after  <- c(green_r,ref_red,nir_r)
+
+
+cat("✓ RGB stacks prepared\n")
+```
+
+## Red + Green
+
+```{r plot-rg, fig.width=12, fig.height=10}
+par(mfrow = c(1,2), mar = c(2,2,3,1))
+
+plotRGB(rg_before, r=1,g=2,b=3, stretch="lin",
+        main="Red + Green - Before Alignment")
+
+plotRGB(rg_after, r=1,g=2,b=3, stretch="lin",
+        main="Red + Green - After Alignment")
+
+par(mfrow = c(1,1))
+```
+
+## Red + NIR
+
+```{r plot, fig.width=12, fig.height=10}
+par(mfrow = c(1,2), mar = c(2,2,3,1))
+
+plotRGB(rn_before, r=1,g=2,b=3, stretch="lin",
+        main="Red + NIR - Before Alignment")
+
+plotRGB(rn_after, r=1,g=2,b=3, stretch="lin",
+        main="Red + NIR - After Alignment")
+
+par(mfrow = c(1,1))
+```
+
+## Green + Red + NIR
+
+```{r plot-rgb, fig.width=12, fig.height=10}
+par(mfrow = c(1,2), mar = c(2,2,3,1))
+
+plotRGB(rgb_before, r=1,g=2,b=3, stretch="lin",
+        main="Green + Red + NIR - Before Alignment")
+
+plotRGB(rgb_after, r=1,g=2,b=3, stretch="lin",
+        main="Green + Red + NIR - After Alignment")
+
+par(mfrow = c(1,1))
+```
+
+```{r}
+cat("\n✓ Coregistration complete\n")
+```
